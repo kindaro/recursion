@@ -1,0 +1,34 @@
+cabal-version: 2.4
+name: cata
+version: 0.0.0.0
+
+common commons
+  build-depends: base, base-unicode-symbols
+    , containers, containers-unicode-symbols
+    , pretty-show
+    , data-fix
+    , ghc-prim
+    , generic-data
+    , tasty, tasty-quickcheck
+  default-extensions: UnicodeSyntax, BlockArguments, TupleSections, TypeApplications, PartialTypeSignatures, PatternSynonyms
+    , LiberalTypeSynonyms, StandaloneDeriving
+    , DeriveFunctor, DeriveFoldable, DeriveTraversable
+    , FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, FunctionalDependencies
+    , UndecidableInstances
+    , RankNTypes, DataKinds, PolyKinds, GADTs, ConstraintKinds, KindSignatures, TypeOperators, TypeFamilies, TypeFamilyDependencies
+    , DeriveFunctor, DeriveFoldable, DeriveTraversable, DeriveGeneric
+    , StandaloneKindSignatures
+    , AllowAmbiguousTypes
+    , ScopedTypeVariables
+  ghc-options: -Wpartial-type-signatures -fdefer-typed-holes -Wall -Wno-star-is-type -Wno-unticked-promoted-constructors
+
+library
+  import: commons
+  exposed-modules: Cata
+
+test-suite checks
+  import: commons
+  hs-source-dirs: checks
+  main-is: Checks.hs
+  type: exitcode-stdio-1.0
+  build-depends: cata
