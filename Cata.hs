@@ -40,3 +40,9 @@ foldrViaCataForSimpleList f z = cata Prelude.fmap g
   where
     g SimpleEnd = z
     g (SimpleCons x y) = x `f` y
+
+id ∷ Functor f ⇒ Y f → Y f
+id = cata Prelude.fmap Cata.Y
+
+const ∷ Functor f ⇒ α → Y f → α
+const = cata Prelude.fmap ∘ Prelude.const
