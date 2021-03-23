@@ -3,6 +3,7 @@ module Cata where
 import Data.Function
 import Prelude.Unicode
 import qualified GHC.Exts as Base (IsList (..))
+import Data.Bifunctor
 
 type Y ∷ (* → *) → *
 data Y (f ∷ * → *) = Y {y ∷ f (Y f)}
@@ -13,10 +14,22 @@ deriving instance Show (f (Y f)) ⇒ Show (Y f)
 cata ∷ ((Y f → α) → f (Y f) → f α) → (f α → α) → Y f → α
 cata fmap = fix \ κ f → f ∘ fmap (κ f) ∘ y
 
+cata' ∷ ((Y' f α → β) → f α (Y' f α) → f α β) → (f α β → β) → Y' f α → β
+cata' fmap = fix \ κ f → f ∘ fmap (κ f) ∘ y'
+
 ana ∷ ((α → Y f) → f α → f (Y f)) → (α → f α) → α → Y f
 ana fmap = fix \ α f → Y ∘ fmap (α f) ∘ f
 
 data SimpleList α recursion = SimpleCons α recursion | SimpleEnd deriving (Prelude.Functor, Prelude.Eq, Prelude.Show)
+
+instance Bifunctor SimpleList where
+  bimap f g (SimpleCons value remainder) = SimpleCons (f value) (g remainder)
+  bimap _ _ SimpleEnd = SimpleEnd
+
+newtype Y' f α = Y' {y' ∷ f α (Y' f α)}
+
+instance Bifunctor f ⇒ Functor (Y' f) where
+  fmap f = cata' second (Y' ∘ first f)
 
 simpleListToPreludeList ∷ forall α. Y (SimpleList α) → [α]
 simpleListToPreludeList = cata Prelude.fmap f
