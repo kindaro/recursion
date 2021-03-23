@@ -58,4 +58,4 @@ instance (Arbitrary α, Arbitrary ((f α) (Cata.Y (f α)))) ⇒ Arbitrary (Cata.
   arbitrary = Prelude.fmap Cata.Y arbitrary
 
 instance (Arbitrary α, Arbitrary recursion) ⇒ Arbitrary (Cata.SimpleList α recursion) where
-  arbitrary = oneof [pure Cata.SimpleEnd, liftA2 Cata.SimpleCons arbitrary arbitrary]
+  arbitrary = frequency [(1, pure Cata.SimpleEnd), (9, liftA2 Cata.SimpleCons arbitrary arbitrary)]
