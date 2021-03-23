@@ -1,9 +1,15 @@
+{-# options_ghc -Wno-name-shadowing #-}
+
 module Cata where
 
 import Data.Function
 import Prelude.Unicode
+import Numeric.Natural.Unicode
 import qualified GHC.Exts as Base (IsList (..))
 import Data.Bifunctor
+import Data.Bifoldable
+import Control.Applicative
+import Data.Monoid (Sum (Sum), getSum)
 
 type Y ∷ (* → *) → *
 data Y (f ∷ * → *) = Y {y ∷ f (Y f)}
@@ -22,14 +28,31 @@ ana fmap = fix \ α f → Y ∘ fmap (α f) ∘ f
 
 data SimpleList α recursion = SimpleCons α recursion | SimpleEnd deriving (Prelude.Functor, Prelude.Eq, Prelude.Show)
 
+instance Bifoldable SimpleList where
+  bifoldMap _ _ SimpleEnd = mempty
+  bifoldMap f g (SimpleCons value remainder) = f value <> g remainder
+
 instance Bifunctor SimpleList where
   bimap f g (SimpleCons value remainder) = SimpleCons (f value) (g remainder)
   bimap _ _ SimpleEnd = SimpleEnd
 
 newtype Y' f α = Y' {y' ∷ f α (Y' f α)}
 
+deriving instance Eq (f α (Y' f α)) ⇒ Eq (Y' f α)
+deriving instance Show (f α (Y' f α)) ⇒ Show (Y' f α)
+
 instance Bifunctor f ⇒ Functor (Y' f) where
   fmap f = cata' second (Y' ∘ first f)
+
+instance Applicative (Y' SimpleList) where
+  pure x = Y' (SimpleCons x (Y' SimpleEnd))
+  _ <*> Y' SimpleEnd = Y' SimpleEnd
+  fs <*> Y' (SimpleCons x xs) = fmap ($ x) fs <|> fs <*> xs
+
+instance Alternative (Y' SimpleList) where
+  empty = Y' SimpleEnd
+  Y' SimpleEnd <|> xs = xs
+  Y' (SimpleCons x xs) <|> ys = Y' (SimpleCons x (xs <|> ys))
 
 simpleListToPreludeList ∷ forall α. Y (SimpleList α) → [α]
 simpleListToPreludeList = cata Prelude.fmap f
@@ -59,3 +82,6 @@ id = cata Prelude.fmap Cata.Y
 
 const ∷ Functor f ⇒ α → Y f → α
 const = cata Prelude.fmap ∘ Prelude.const
+
+length ∷ (Bifunctor f, Bifoldable f) ⇒ Y' f α → ℕ
+length = getSum ∘ cata' second (bifoldMap (Prelude.const (Sum 1)) Prelude.id)

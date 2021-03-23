@@ -7,8 +7,10 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 import qualified Prelude
 import Prelude.Unicode
-import Prelude (IO, Eq, Bool, pure)
+import Prelude (IO, Eq, Bool, pure, (+), (*))
 import Control.Applicative (liftA2)
+import qualified Control.Applicative as Base
+import Control.Applicative ((<|>))
 import Numeric.Natural
 
 import qualified Cata
@@ -24,6 +26,12 @@ checks = testGroup ""
     ]
   , testProperty "Catamorphose gives rise to identity" $ Cata.cata Prelude.fmap Cata.Y ↔ Prelude.id @(Cata.Y (Cata.SimpleList ℤ))
   , testProperty "Catamorphose gives rise to constant" $ Cata.cata @(Cata.SimpleList ℤ) Prelude.fmap (const 1) ↔ Prelude.const @ℤ 1
+  , testGroup "Length is definable with respect to Alternative."
+    [ testProperty "Zero" $ once $ Cata.length @Cata.SimpleList Base.empty ≡ 0
+    , testProperty "Sum" $ \ xs ys → Cata.length @Cata.SimpleList @ℤ (xs <|> ys) ≡ Cata.length xs + Cata.length ys
+    , testProperty "One" $ \ x → Cata.length @Cata.SimpleList @ℤ (pure x) ≡ 1
+    , testProperty "Product" $ \ xs ys → Cata.length @Cata.SimpleList @(ℤ, ℤ) (liftA2 (, ) xs ys) ≡ Cata.length xs * Cata.length ys
+    ]
   ]
 
 isExtensionallyEqual ∷ Eq β ⇒ (α → β) → (α → β) → α → Bool
@@ -42,6 +50,9 @@ instance CoArbitrary Natural where
 
 instance Function Natural where
   function = functionIntegral
+
+instance (Arbitrary α, Arbitrary ((f α) (Cata.Y' f α))) ⇒ Arbitrary (Cata.Y' f α) where
+  arbitrary = Prelude.fmap Cata.Y' arbitrary
 
 instance (Arbitrary α, Arbitrary ((f α) (Cata.Y (f α)))) ⇒ Arbitrary (Cata.Y (f α)) where
   arbitrary = Prelude.fmap Cata.Y arbitrary
