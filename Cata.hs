@@ -7,6 +7,9 @@ import qualified GHC.Exts as Base (IsList (..))
 type Y ∷ (* → *) → *
 data Y (f ∷ * → *) = Y {y ∷ f (Y f)}
 
+deriving instance Eq (f (Y f)) ⇒ Eq (Y f)
+deriving instance Show (f (Y f)) ⇒ Show (Y f)
+
 cata ∷ ((Y f → α) → f (Y f) → f α) → (f α → α) → Y f → α
 cata fmap = fix \ κ f → f ∘ fmap (κ f) ∘ y
 
@@ -14,9 +17,6 @@ ana ∷ ((α → Y f) → f α → f (Y f)) → (α → f α) → α → Y f
 ana fmap = fix \ α f → Y ∘ fmap (α f) ∘ f
 
 data SimpleList α recursion = SimpleCons α recursion | SimpleEnd deriving (Prelude.Functor, Prelude.Eq, Prelude.Show)
-
-deriving instance Eq (f (Y f)) ⇒ Eq (Y f)
-deriving instance Show (f (Y f)) ⇒ Show (Y f)
 
 simpleListToPreludeList ∷ forall α. Y (SimpleList α) → [α]
 simpleListToPreludeList = cata Prelude.fmap f
