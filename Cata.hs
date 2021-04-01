@@ -7,6 +7,7 @@ import Prelude.Unicode
 import Numeric.Natural.Unicode
 import qualified GHC.Exts as Base (IsList (..))
 import Data.Bifunctor
+import Data.Bifunctor.TH
 import Data.Bifoldable
 import Control.Applicative
 import Data.Monoid (Sum (Sum), getSum)
@@ -29,16 +30,6 @@ cata' fmap = fix \ κ f → f ∘ fmap (κ f) ∘ y'
 ana ∷ ((α → Y f) → f α → f (Y f)) → (α → f α) → α → Y f
 ana fmap = fix \ α f → Y ∘ fmap (α f) ∘ f
 
-data SimpleList α recursion = SimpleCons α recursion | SimpleEnd deriving (Prelude.Functor, Prelude.Eq, Prelude.Show)
-
-instance Bifoldable SimpleList where
-  bifoldMap _ _ SimpleEnd = mempty
-  bifoldMap f g (SimpleCons value remainder) = f value <> g remainder
-
-instance Bifunctor SimpleList where
-  bimap f g (SimpleCons value remainder) = SimpleCons (f value) (g remainder)
-  bimap _ _ SimpleEnd = SimpleEnd
-
 newtype Y' f α = Y' {y' ∷ f α (Y' f α)}
 
 deriving instance Eq (f α (Y' f α)) ⇒ Eq (Y' f α)
@@ -46,6 +37,11 @@ deriving instance Show (f α (Y' f α)) ⇒ Show (Y' f α)
 
 instance Bifunctor f ⇒ Functor (Y' f) where
   fmap f = cata' second (Y' ∘ first f)
+
+data SimpleList α recursion = SimpleCons α recursion | SimpleEnd deriving (Prelude.Functor, Prelude.Eq, Prelude.Show)
+
+$(deriveBifunctor ''SimpleList)
+$(deriveBifoldable ''SimpleList)
 
 instance Applicative (Y' SimpleList) where
   pure x = Y' (SimpleCons x (Y' SimpleEnd))
@@ -99,6 +95,9 @@ type Π = (, )
 newtype ListFunctor α recursion = ListFunctor {listFunctor ∷ ( ) + α × recursion} deriving (Show, Eq, Ord, Functor)
 type List = Y' ListFunctor
 
+$(deriveBifunctor ''ListFunctor)
+$(deriveBifoldable ''ListFunctor)
+
 link ∷ α → List α → List α
 link x xs = Y' (ListFunctor (Right (x, xs)))
 end ∷ List α
@@ -111,7 +110,7 @@ instance Base.IsList (List α) where
   fromList (x: xs) = x `link` Base.fromList xs
   fromList [ ] = end
 
-data Pair α = Pair α α deriving (Show, Eq, Ord, Functor, Generic1)
+data Pair α = Pair α α deriving (Show, Eq, Ord, Functor, Foldable, Traversable, Generic1)
 instance Show1 Pair where
   liftShowsPrec = gliftShowsPrec
 
@@ -119,13 +118,17 @@ type f ∘ g = Compose f g
 infixl 4 ∘
 pattern C x = Compose x
 
-type Tree α = Y (Π α ∘ Maybe ∘ Pair)
+newtype TreeFunctor α β = TreeFunctor (α × (( ) + Pair β))
+type Tree = Y' TreeFunctor
+
+$(deriveBifunctor ''TreeFunctor)
+$(deriveBifoldable ''TreeFunctor)
 
 leaf ∷ α → Tree α
-leaf x = (Y ∘ C ∘ C) (x, Nothing)
+leaf x = (Y' ∘ TreeFunctor) (x, Left ( ))
 
 branch ∷ α → Tree α → Tree α → Tree α
-branch x t₁ t₂ = (Y ∘ C ∘ C) (x, (Just (Pair t₁ t₂)))
+branch x t₁ t₂ = (Y' ∘ TreeFunctor) (x, (Right (Pair t₁ t₂)))
 
 example ∷ Tree ℤ
 example = branch 0 (branch 1 (leaf 2) (leaf 3)) ((leaf 4))

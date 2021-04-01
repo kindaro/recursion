@@ -10,6 +10,7 @@ common commons
     , ghc-prim
     , generic-data
     , tasty, tasty-quickcheck
+    , bifunctors
   default-extensions: UnicodeSyntax, BlockArguments, TupleSections, TypeApplications, PartialTypeSignatures, PatternSynonyms
     , LiberalTypeSynonyms, StandaloneDeriving
     , DeriveFunctor, DeriveFoldable, DeriveTraversable
@@ -20,6 +21,7 @@ common commons
     , StandaloneKindSignatures
     , AllowAmbiguousTypes
     , ScopedTypeVariables
+    , TemplateHaskell
   ghc-options: -Wpartial-type-signatures -fdefer-typed-holes -Wall -Wno-star-is-type -Wno-unticked-promoted-constructors
 
 library
