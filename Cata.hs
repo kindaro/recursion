@@ -3,12 +3,14 @@
 module Cata where
 
 import Data.Function
+import qualified Data.Function as Base
 import Prelude.Unicode
 import Numeric.Natural.Unicode
 import qualified GHC.Exts as Base (IsList (..))
 import Data.Bifunctor
 import Data.Bifunctor.TH
 import Data.Bifoldable
+import Data.Bitraversable
 import Control.Applicative
 import Data.Monoid (Sum (Sum), getSum)
 import Generic.Data
@@ -38,10 +40,15 @@ deriving instance Show (f α (Y' f α)) ⇒ Show (Y' f α)
 instance Bifunctor f ⇒ Functor (Y' f) where
   fmap f = cata' second (Y' ∘ first f)
 
+instance Bifoldable f ⇒ Foldable (Y' f) where
+
+instance Bitraversable f ⇒ Traversable (Y' f) where
+
 data SimpleList α recursion = SimpleCons α recursion | SimpleEnd deriving (Prelude.Functor, Prelude.Eq, Prelude.Show)
 
 $(deriveBifunctor ''SimpleList)
 $(deriveBifoldable ''SimpleList)
+$(deriveBitraversable ''SimpleList)
 
 instance Applicative (Y' SimpleList) where
   pure x = Y' (SimpleCons x (Y' SimpleEnd))
@@ -92,11 +99,12 @@ type α × β = (α, β)
 infixl 6 ×
 type Π = (, )
 
-newtype ListFunctor α recursion = ListFunctor {listFunctor ∷ ( ) + α × recursion} deriving (Show, Eq, Ord, Functor)
+newtype ListFunctor α recursion = ListFunctor {listFunctor ∷ ( ) + α × recursion} deriving (Show, Eq, Ord, Functor, Foldable, Traversable, Generic, Generic1)
 type List = Y' ListFunctor
 
 $(deriveBifunctor ''ListFunctor)
 $(deriveBifoldable ''ListFunctor)
+$(deriveBitraversable ''ListFunctor)
 
 link ∷ α → List α → List α
 link x xs = Y' (ListFunctor (Right (x, xs)))
@@ -118,17 +126,109 @@ type f ∘ g = Compose f g
 infixl 4 ∘
 pattern C x = Compose x
 
-newtype TreeFunctor α β = TreeFunctor (α × (( ) + Pair β))
+newtype TreeFunctor α β = TreeFunctor (α × (( ) + List β)) deriving (Eq, Show, Functor, Foldable, Traversable, Generic, Generic1)
 type Tree = Y' TreeFunctor
 
-$(deriveBifunctor ''TreeFunctor)
-$(deriveBifoldable ''TreeFunctor)
+-- I have to inline a chunk of splices derived from `TreeFunctor` with `Pair`
+-- instead of `List`, and some associated internal code from `bifunctors`.
+
+bimapConst :: p b d -> (a -> b) -> (c -> d) -> p a c -> p b d
+bimapConst = Base.const . Base.const . Base.const
+{-# INLINE bimapConst #-}
+
+bifoldrConst :: c -> (a -> c -> c) -> (b -> c -> c) -> c -> p a b -> c
+bifoldrConst = Base.const . Base.const . Base.const . Base.const
+{-# INLINE bifoldrConst #-}
+
+bifoldMapConst :: m -> (a -> m) -> (b -> m) -> p a b -> m
+bifoldMapConst = Base.const . Base.const . Base.const
+{-# INLINE bifoldMapConst #-}
+
+bitraverseConst :: f (t c d) -> (a -> f c) -> (b -> f d) -> t a b -> f (t c d)
+bitraverseConst = Base.const . Base.const . Base.const
+{-# INLINE bitraverseConst #-}
+
+instance Bifunctor TreeFunctor where
+  bimap
+    = \ f g value
+        -> (((bimapConst
+                (case value of {
+                    TreeFunctor _arg1
+                      -> TreeFunctor
+                          (case _arg1 of {
+                              (,) _arg1 _arg2
+                                -> ((,) (f _arg1))
+                                    (((bimap (\ _n -> _n))
+                                        (\ _n -> (fmap g) _n))
+                                        _arg2) }) }))
+                f)
+              g)
+              value
+
+instance Bifoldable TreeFunctor where
+  bifoldr
+    = \ f g z value
+        -> ((((bifoldrConst
+                  (case value of {
+                    TreeFunctor _arg1
+                      -> ((\ _n1 n2
+                              -> case _n1 of {
+                                  (,) _arg1 _arg2
+                                    -> (f _arg1)
+                                          (((\ _n1 n2
+                                              -> (((bifoldr (\ _n1 n2 -> n2))
+                                                      (\ _n1 n2
+                                                        -> ((foldr g) n2) _n1))
+                                                    n2)
+                                                    _n1)
+                                              _arg2)
+                                            n2) })
+                            _arg1)
+                            z }))
+                f)
+                g)
+              z)
+              value
+  bifoldMap
+    = \ f g value
+        -> (((bifoldMapConst
+                (case value of {
+                    TreeFunctor _arg1
+                      -> (\ _n
+                            -> case _n of {
+                                (,) _arg1 _arg2
+                                  -> (mappend (f _arg1))
+                                        (((bifoldMap (\ _n -> mempty)) (foldMap g))
+                                          _arg2) })
+                          _arg1 }))
+                f)
+              g)
+              value
+
+instance Bitraversable TreeFunctor where
+  bitraverse
+    = \ f g value
+        -> (((bitraverseConst
+                (case value of {
+                    TreeFunctor _arg1
+                      -> (fmap (\ b1 -> TreeFunctor b1))
+                          ((\ _n
+                              -> case _n of {
+                                    (,) _arg1 _arg2
+                                      -> ((liftA2 (\ b1 b2 -> ((,) b1) b2))
+                                            (f _arg1))
+                                          (((bitraverse pure) (traverse g)) _arg2) })
+                              _arg1) }))
+                f)
+              g)
+              value
+
 
 leaf ∷ α → Tree α
 leaf x = (Y' ∘ TreeFunctor) (x, Left ( ))
 
 branch ∷ α → Tree α → Tree α → Tree α
-branch x t₁ t₂ = (Y' ∘ TreeFunctor) (x, (Right (Pair t₁ t₂)))
+branch x t₁ t₂ = (Y' ∘ TreeFunctor) (x, (Right [t₁, t₂]))
 
 example ∷ Tree ℤ
 example = branch 0 (branch 1 (leaf 2) (leaf 3)) ((leaf 4))

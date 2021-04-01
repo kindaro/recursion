@@ -37,6 +37,11 @@ checks = testGroup ""
     , testProperty "One" $ \ x → Cata.length @Cata.SimpleList @ℤ (pure x) ≡ 1
     , testProperty "Product" $ \ xs ys → Cata.length @Cata.SimpleList @(ℤ, ℤ) (liftA2 (, ) xs ys) ≡ Cata.length xs * Cata.length ys
     ]
+  , testGroup "Generalized functor is lawful."
+    [ testProperty "Identity" $ Prelude.fmap @Cata.Tree @ℤ id ↔ id
+    , testProperty "Composition"
+      \ (Fn (f ∷ ℤ → ℤ)) (Fn (g ∷ ℤ → ℤ)) → Prelude.fmap @Cata.Tree g ∘ Prelude.fmap f ↔ Prelude.fmap (g ∘ f)
+    ]
   ]
 
 isExtensionallyEqual ∷ Eq β ⇒ (α → β) → (α → β) → α → Bool
@@ -68,3 +73,5 @@ instance (Arbitrary α, Arbitrary recursion) ⇒ Arbitrary (Cata.SimpleList α r
 instance (Arbitrary α, Arbitrary recursion) ⇒ Arbitrary (Cata.ListFunctor α recursion) where
   arbitrary = Prelude.fmap Cata.ListFunctor arbitrary
 
+instance (Arbitrary α, Arbitrary recursion) ⇒ Arbitrary (Cata.TreeFunctor α recursion) where
+  arbitrary = Prelude.fmap Cata.TreeFunctor arbitrary
