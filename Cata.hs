@@ -10,6 +10,9 @@ import Data.Bifunctor
 import Data.Bifoldable
 import Control.Applicative
 import Data.Monoid (Sum (Sum), getSum)
+import Generic.Data
+import Data.Functor.Compose
+import Data.Functor.Classes
 
 type Y ∷ (* → *) → *
 data Y (f ∷ * → *) = Y {y ∷ f (Y f)}
@@ -91,6 +94,7 @@ infixl 5 +
 
 type α × β = (α, β)
 infixl 6 ×
+type Π = (, )
 
 newtype ListFunctor α recursion = ListFunctor {listFunctor ∷ ( ) + α × recursion} deriving (Show, Eq, Ord, Functor)
 type List = Y' ListFunctor
@@ -106,3 +110,22 @@ instance Base.IsList (List α) where
   toList (Y' (ListFunctor (Right (x, xs)))) = x: Base.toList xs
   fromList (x: xs) = x `link` Base.fromList xs
   fromList [ ] = end
+
+data Pair α = Pair α α deriving (Show, Eq, Ord, Functor, Generic1)
+instance Show1 Pair where
+  liftShowsPrec = gliftShowsPrec
+
+type f ∘ g = Compose f g
+infixl 4 ∘
+pattern C x = Compose x
+
+type Tree α = Y (Π α ∘ Maybe ∘ Pair)
+
+leaf ∷ α → Tree α
+leaf x = (Y ∘ C ∘ C) (x, Nothing)
+
+branch ∷ α → Tree α → Tree α → Tree α
+branch x t₁ t₂ = (Y ∘ C ∘ C) (x, (Just (Pair t₁ t₂)))
+
+example ∷ Tree ℤ
+example = branch 0 (branch 1 (leaf 2) (leaf 3)) ((leaf 4))
