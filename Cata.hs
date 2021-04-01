@@ -85,3 +85,24 @@ const = cata Prelude.fmap ∘ Prelude.const
 
 length ∷ (Bifunctor f, Bifoldable f) ⇒ Y' f α → ℕ
 length = getSum ∘ cata' second (bifoldMap (Prelude.const (Sum 1)) Prelude.id)
+
+type (+) = Either
+infixl 5 +
+
+type α × β = (α, β)
+infixl 6 ×
+
+newtype ListFunctor α recursion = ListFunctor {listFunctor ∷ ( ) + α × recursion} deriving (Show, Eq, Ord, Functor)
+type List = Y' ListFunctor
+
+link ∷ α → List α → List α
+link x xs = Y' (ListFunctor (Right (x, xs)))
+end ∷ List α
+end = Y' (ListFunctor (Left ( )))
+
+instance Base.IsList (List α) where
+  type Item (List α) = α
+  toList (Y' (ListFunctor (Left ( )))) = [ ]
+  toList (Y' (ListFunctor (Right (x, xs)))) = x: Base.toList xs
+  fromList (x: xs) = x `link` Base.fromList xs
+  fromList [ ] = end
