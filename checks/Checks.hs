@@ -52,7 +52,8 @@ checks = testGroup ""
       , testGroup "Traversable."
         [ testProperty "Identity" $ Prelude.traverse @Cata.List @_ @ℤ Identity ↔ Identity
         , testProperty "Composition" $
-          \ (Fn (f ∷ ℤ → Prelude.Maybe ℤ)) (Fn (g ∷ ℤ → Prelude.Maybe ℤ)) → Prelude.traverse @Cata.Tree (Compose ∘ fmap g ∘ f) ↔ Compose ∘ fmap (Prelude.traverse g) ∘ Prelude.traverse f
+          \ (Fn (f ∷ ℤ → Prelude.Maybe ℤ)) (Fn (g ∷ ℤ → Prelude.Maybe ℤ))
+          → Prelude.traverse @Cata.Tree (Compose ∘ fmap g ∘ f) ↔ Compose ∘ fmap (Prelude.traverse g) ∘ Prelude.traverse f
         ]
       ]
     , testGroup "Tree."
@@ -67,7 +68,8 @@ checks = testGroup ""
       , testGroup "Traversable."
         [ testProperty "Identity" $ Prelude.traverse @Cata.Tree @_ @ℤ Identity ↔ Identity
         , testProperty "Composition" $
-          \ (Fn (f ∷ ℤ → Prelude.Maybe ℤ)) (Fn (g ∷ ℤ → Prelude.Maybe ℤ)) → Prelude.traverse @Cata.Tree (Compose ∘ fmap g ∘ f) ↔ Compose ∘ fmap (Prelude.traverse g) ∘ Prelude.traverse f
+          \ (Fn (f ∷ ℤ → Prelude.Maybe ℤ)) (Fn (g ∷ ℤ → Prelude.Maybe ℤ))
+          → Prelude.traverse @Cata.Tree (Compose ∘ fmap g ∘ f) ↔ Compose ∘ fmap (Prelude.traverse g) ∘ Prelude.traverse f
         ]
       ]
     ]
