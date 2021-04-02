@@ -40,9 +40,11 @@ deriving instance Show (f α (Y' f α)) ⇒ Show (Y' f α)
 instance Bifunctor f ⇒ Functor (Y' f) where
   fmap f = cata' second (Y' ∘ first f)
 
-instance Bifoldable f ⇒ Foldable (Y' f) where
+instance (Bifunctor f, Bifoldable f) ⇒ Foldable (Y' f) where
+  foldMap f = cata' second (bifoldMap f id)
 
-instance Bitraversable f ⇒ Traversable (Y' f) where
+instance (Bifunctor f, Bitraversable f) ⇒ Traversable (Y' f) where
+  traverse f = cata' second (fmap Y' ∘ bitraverse f Prelude.id)
 
 data SimpleList α recursion = SimpleCons α recursion | SimpleEnd deriving (Prelude.Functor, Prelude.Eq, Prelude.Show)
 
