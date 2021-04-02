@@ -40,17 +40,6 @@ checks = testGroup ""
     , testProperty "Product" $ \ xs ys → Cata.length @Cata.SimpleList @(ℤ, ℤ) (liftA2 (, ) xs ys) ≡ Cata.length xs * Cata.length ys
     ]
   , testGroup "Container classes."
-      [ testGroup "List."
-        [ testGroup "Generalized functor is lawful."
-          [ testProperty "Identity" $ Prelude.fmap @Cata.Tree @ℤ id ↔ id
-          , testProperty "Composition"
-            \ (Fn (f ∷ ℤ → ℤ)) (Fn (g ∷ ℤ → ℤ)) → Prelude.fmap @Cata.Tree g ∘ Prelude.fmap f ↔ Prelude.fmap (g ∘ f)
-          ]
-        , testProperty "Prelude.length" $ Prelude.length @Cata.List @ℤ ↔ Prelude.fromIntegral ∘ Cata.length
-        , testProperty "traverse pure" $ Prelude.traverse @Cata.List @[] @ℤ Prelude.pure ↔ Prelude.pure
-        ]
-      ]
-  , testGroup "Container classes."
     [ testGroup "List."
       [ testGroup "Functor."
         [ testProperty "Identity" $ Prelude.fmap @Cata.List @ℤ id ↔ id
