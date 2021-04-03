@@ -12,10 +12,14 @@ import Data.Bifunctor.TH
 import Data.Bifoldable
 import Data.Bitraversable
 import Control.Applicative
-import Data.Monoid (Sum (Sum), getSum)
 import Generic.Data
 import Data.Functor.Compose
 import Data.Functor.Classes
+import Data.Semigroup
+import qualified Data.Foldable as Foldable
+
+diagonal ∷ α → (α, α)
+diagonal x = (x, x)
 
 type Y ∷ (* → *) → *
 data Y (f ∷ * → *) = Y {y ∷ f (Y f)}
@@ -235,3 +239,42 @@ branch x t₁ t₂ = (Y' ∘ TreeFunctor) (x, (Right [t₁, t₂]))
 
 example ∷ Tree ℤ
 example = branch 0 (branch 1 (leaf 2) (leaf 3)) ((leaf 4))
+
+newtype C₂ functor γ bifunctor α β
+  = C₂ {c₂ ∷ functor γ (bifunctor α β)} deriving (Show, Eq, Ord)
+
+instance (Functor (functor γ), Functor (functor' α)) ⇒ Functor (C₂ functor γ functor' α) where
+  fmap f = C₂ ∘ fmap (fmap f) ∘ c₂
+
+instance (Functor (functor γ), Bifunctor bifunctor) ⇒ Bifunctor (C₂ functor γ bifunctor) where
+  bimap f g = C₂ ∘ fmap (bimap f g) ∘ c₂
+
+leftmost ∷ C₂ (, ) γ bifunctor α β → γ
+leftmost (C₂ (x, _)) = x
+
+forget ∷ (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Y' (C₂ (, ) β f) α → Y' f α
+forget = cata' fmap (Y' ∘ snd ∘ c₂)
+
+decorative
+  ∷ (Bifunctor f, Functor (f α), Foldable (f α))
+  ⇒ (∀ α. (Functor (f α), Foldable (f α)) ⇒ f α β → β) → Y' f α → Y' (C₂ (, ) β f) α
+decorative algebra = cata' fmap (Y' ∘ \ f → C₂ ((algebra ∘ bimap Base.id (leftmost ∘ y')) f, f))
+
+depths ∷ ∀ (f ∷ * → * → *) α. (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Y' f α → Y' (C₂ (, ) Word f) α
+depths = decorative algebra
+  where
+    algebra ∷ ∀ α. (Functor (f α), Foldable (f α)) ⇒ f α Word → Word
+    algebra = (+ 1) ∘ Foldable.foldr max 0
+
+depth ∷ ∀ (f ∷ * → * → *) α. (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Y' f α → Word
+depth = fst ∘ c₂ ∘ y' ∘ depths
+
+null ∷ (Bifunctor f, Bifoldable f) ⇒ Y' (f ∷ * → * → *) α → Bool
+null = Foldable.null ∘ Foldable.toList
+
+drop ∷ ∀ (f ∷ * → * → *) α. (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Word → Y' f α → Y' (C₂ Either ( ) f) α
+drop n = cata' fmap (Y' ∘ C₂ ∘ conversion ∘ c₂) ∘ depths
+  where
+    conversion (i, value)
+      | i ≤ n = Left ( )
+      | otherwise = Right value
