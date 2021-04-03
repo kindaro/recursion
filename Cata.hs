@@ -126,6 +126,7 @@ instance Show1 Pair where
 
 type f ∘ g = Compose f g
 infixl 4 ∘
+pattern C ∷ forall k k' (f ∷ k → *) (g ∷ k' → k) (a ∷ k'). f (g a) → Compose f g a
 pattern C x = Compose x
 
 newtype TreeFunctor α β = TreeFunctor (α × (( ) + List β)) deriving (Eq, Show, Functor, Foldable, Traversable, Generic, Generic1)

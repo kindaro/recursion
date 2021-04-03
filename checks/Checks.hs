@@ -7,7 +7,7 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 import qualified Prelude
 import Prelude.Unicode
-import Prelude (IO, Eq, Bool, pure, (+), (*), traverse, fmap, Show)
+import Prelude (IO, Eq, pure, (+), (*), traverse, fmap, Show)
 import Control.Applicative (liftA2)
 import qualified Control.Applicative as Base
 import Control.Applicative ((<|>))
