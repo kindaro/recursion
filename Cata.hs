@@ -100,6 +100,7 @@ length = getSum ∘ cata' second (bifoldMap (Prelude.const (Sum 1)) Prelude.id)
 
 type (+) = Either
 infixl 5 +
+type Σ = Either
 
 type α × β = (α, β)
 infixl 6 ×
@@ -243,6 +244,9 @@ example = branch 0 (branch 1 (leaf 2) (leaf 3)) ((leaf 4))
 newtype C₂ functor γ bifunctor α β
   = C₂ {c₂ ∷ functor γ (bifunctor α β)} deriving (Show, Eq, Ord)
 
+type Free = C₂ Σ
+type Cofree = C₂ Π
+
 instance (Functor (functor γ), Functor (functor' α)) ⇒ Functor (C₂ functor γ functor' α) where
   fmap f = C₂ ∘ fmap (fmap f) ∘ c₂
 
@@ -257,10 +261,10 @@ forget = cata' fmap (Y' ∘ snd ∘ c₂)
 
 decorative
   ∷ (Bifunctor f, Functor (f α), Foldable (f α))
-  ⇒ (∀ α. (Functor (f α), Foldable (f α)) ⇒ f α β → β) → Y' f α → Y' (C₂ (, ) β f) α
+  ⇒ (∀ α. (Functor (f α), Foldable (f α)) ⇒ f α β → β) → Y' f α → Y' (Cofree β f) α
 decorative algebra = cata' fmap (Y' ∘ \ f → C₂ ((algebra ∘ bimap Base.id (leftmost ∘ y')) f, f))
 
-depths ∷ ∀ (f ∷ * → * → *) α. (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Y' f α → Y' (C₂ (, ) Word f) α
+depths ∷ ∀ (f ∷ * → * → *) α. (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Y' f α → Y' (Cofree Word f) α
 depths = decorative algebra
   where
     algebra ∷ ∀ α. (Functor (f α), Foldable (f α)) ⇒ f α Word → Word
@@ -272,7 +276,7 @@ depth = fst ∘ c₂ ∘ y' ∘ depths
 null ∷ (Bifunctor f, Bifoldable f) ⇒ Y' (f ∷ * → * → *) α → Bool
 null = Foldable.null ∘ Foldable.toList
 
-drop ∷ ∀ (f ∷ * → * → *) α. (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Word → Y' f α → Y' (C₂ Either ( ) f) α
+drop ∷ ∀ (f ∷ * → * → *) α. (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Word → Y' f α → Y' (Free ( ) f) α
 drop n = cata' fmap (Y' ∘ C₂ ∘ conversion ∘ c₂) ∘ depths
   where
     conversion (i, value)
