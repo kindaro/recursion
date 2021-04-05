@@ -78,6 +78,8 @@ checks = testGroup ""
     , testProperty "depth ≡ length + 1" $ Cata.depth @Cata.ListFunctor @ℤ ↔ (+ 1) ∘ Prelude.fromIntegral ∘ Cata.length
     , testProperty "drop depth ≡ empty" \ (x ∷ Cata.Tree ℤ) → Cata.drop (Cata.depth x) x === (Cata.Y' ∘ Cata.C₂ ∘ Prelude.Left) ( )
     , testProperty "drop 0 ≡ cata Right" $ Cata.drop @Cata.TreeFunctor @ℤ 0 ↔ Cata.cata' fmap (Cata.Y' ∘ Cata.C₂ ∘ Prelude.Right)
+    , testProperty "shallowness + 1 ≡ depth" $ (+1) ∘ Cata.shallowness ↔ Cata.depth @Cata.TreeFunctor @ℤ
+    , testProperty "take (shallowness + 1) ≡ cata Right" \ (x ∷ Cata.Tree ℤ) → Cata.take (Cata.shallowness x + 1) x === Cata.cata' fmap (Cata.Y' ∘ Cata.C₂ ∘ Prelude.Right) x
     ]
   ]
 

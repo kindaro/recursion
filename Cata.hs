@@ -259,6 +259,14 @@ leftmost (C₂ (x, _)) = x
 forget ∷ (Bifunctor f, Functor (f α), Foldable (f α)) ⇒ Y' (Cofree β f) α → Y' f α
 forget = cata' fmap (Y' ∘ snd ∘ c₂)
 
+newtype Third functor bifunctor α γ β = Third {third ∷ C₂ functor γ bifunctor α β}
+
+instance (Bifunctor bifunctor, Bifunctor functor) ⇒ Bifunctor (Third functor bifunctor α) where
+  bimap f g = Third ∘ C₂ ∘ bimap f (bimap Base.id g) ∘ c₂ ∘ third
+
+instance (Bifoldable bifunctor, Bifoldable functor) ⇒ Bifoldable (Third functor bifunctor α) where
+  bifoldMap f g = bifoldMap f (bifoldMap (Base.const mempty) g) ∘ c₂ ∘ third
+
 decorative
   ∷ (Bifunctor f, Functor (f α), Foldable (f α))
   ⇒ (∀ α. (Functor (f α), Foldable (f α)) ⇒ f α β → β) → Y' f α → Y' (Cofree β f) α
@@ -281,4 +289,21 @@ drop n = cata' fmap (Y' ∘ C₂ ∘ conversion ∘ c₂) ∘ depths
   where
     conversion (i, value)
       | i ≤ n = Left ( )
+      | otherwise = Right value
+
+shallownesses ∷ ∀ (f ∷ * → * → *) α. (Functor (f α), Bifunctor f, Foldable (f α)) ⇒ Y' f α → Y' (Cofree ℕ f) α
+shallownesses = ($ 0) ∘ cata' fmap algebra
+  where
+    algebra ∷ f α (ℕ → Y' (Cofree ℕ f) α) → ℕ → Y' (Cofree ℕ f) α
+    algebra = flip \ n → Y' ∘ C₂ ∘ (n, ) ∘ fmap ($ (n + 1))
+
+shallowness ∷ ∀ (f ∷ * → * → *) α. (Bifunctor f, Bifoldable f, Functor (f α), Foldable (f α)) ⇒ Y' f α → ℕ
+shallowness = maximum ∘ Foldable.toList  ∘ cata' fmap (Y' ∘ Third) ∘ shallownesses
+
+take ∷ (Functor (f α), Bifunctor f, Foldable (f α)) ⇒ ℕ → Y' f α → Y' (Free ( ) f) α
+take n = cata' fmap (Y' ∘ C₂ ∘ conversion ∘ c₂) ∘ shallownesses
+  where
+    conversion ∷ (ℕ, f α (Y' (Free ( ) f) α)) → Either ( ) (f α (Y' (Free ( ) f) α))
+    conversion (i, value)
+      | i ≥ n = Left ( )
       | otherwise = Right value
