@@ -1,0 +1,12 @@
+cradle:
+  cabal:
+    - path: "./"
+      component: "lib:cata"
+
+    - path: "checks"
+      component: "cata:test:checks"
+
+  bios:
+    with-ghc:
+      "/home/kindaro/.ghcup/bin//ghc"
+
