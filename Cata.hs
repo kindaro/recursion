@@ -36,6 +36,9 @@ cata' fmap = fix \ κ f → f ∘ fmap (κ f) ∘ y'
 ana ∷ ((α → Y f) → f α → f (Y f)) → (α → f α) → α → Y f
 ana fmap = fix \ α f → Y ∘ fmap (α f) ∘ f
 
+ana' ∷ ((α -> Y' f γ) -> f γ α -> f γ (Y' f γ)) → (α → f γ α) → α → Y' f γ
+ana' fmap algebra = fix \ α → Y' ∘ fmap α ∘ algebra
+
 newtype Y' f α = Y' {y' ∷ f α (Y' f α)}
 
 deriving instance Eq (f α (Y' f α)) ⇒ Eq (Y' f α)
@@ -307,3 +310,20 @@ take n = cata' fmap (Y' ∘ C₂ ∘ conversion ∘ c₂) ∘ shallownesses
     conversion (i, value)
       | i ≥ n = Left ( )
       | otherwise = Right value
+
+fork ∷ (α → β₁) → (α → β₂) → α → (β₁, β₂)
+fork f g x = (f x, g x)
+
+scanFromLeaves ∷ _ ⇒ (f α β → β) → Y' f α → Y' (Cofree β f) α
+scanFromLeaves algebra = ana' fmap (C₂ ∘ fork (cata' fmap algebra) y')
+
+scanFromRoot
+  ∷ ∀ f α label accumulator
+  . _
+  ⇒ (∀ ξ. accumulator → f α ξ → label) → (∀ ξ. accumulator → f α ξ → accumulator) → (accumulator, Y' f α) → Y' (Cofree label f) α
+scanFromRoot computeLabel accumulate = ana' fmap coAlgebra
+  where
+    fixture ∷ (accumulator, Y' f α) → f α (accumulator, Y' f α)
+    fixture (previousAccumulator, Y' tree) = let newAccumulator = accumulate previousAccumulator tree in fmap (newAccumulator, ) tree
+    coAlgebra ∷ (accumulator, Y' f α) → Cofree label f α (accumulator,Y' f α)
+    coAlgebra = C₂ ∘ fork (uncurry computeLabel ∘ fmap y') fixture

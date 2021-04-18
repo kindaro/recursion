@@ -15,6 +15,9 @@ import Numeric.Natural
 import qualified GHC.Exts as Base (IsList (..))
 import Data.Functor.Identity
 import Data.Functor.Compose
+import Numeric.Natural.Unicode
+import Text.Show.Pretty
+import Data.Bifoldable
 
 import qualified Cata
 
@@ -80,11 +83,15 @@ checks = testGroup ""
     , testProperty "drop 0 ≡ cata Right" $ Cata.drop @Cata.TreeFunctor @ℤ 0 ↔ Cata.cata' fmap (Cata.Y' ∘ Cata.C₂ ∘ Prelude.Right)
     , testProperty "shallowness + 1 ≡ depth" $ (+1) ∘ Cata.shallowness ↔ Cata.depth @Cata.TreeFunctor @ℤ
     , testProperty "take (shallowness + 1) ≡ cata Right" \ (x ∷ Cata.Tree ℤ) → Cata.take (Cata.shallowness x + 1) x === Cata.cata' fmap (Cata.Y' ∘ Cata.C₂ ∘ Prelude.Right) x
+    , testProperty "A generalization of depths"
+      $ Cata.scanFromLeaves ((+ 1) ∘ bifoldr (flip const) Prelude.max 0) ↔ Cata.depths @Cata.TreeFunctor @ℕ
+    , testProperty "A generalization of shallownesses"
+      $ Cata.scanFromRoot const (fmap (+ 1) ∘ const) ∘ (0, ) ↔ Cata.shallownesses @Cata.TreeFunctor @ℤ
     ]
   ]
 
 isExtensionallyEqual ∷ (Eq β, Show β) ⇒ (α → β) → (α → β) → α → Property
-isExtensionallyEqual f g x = f x === g x
+isExtensionallyEqual f g x = counterexample (ppShow (f x)) (counterexample (ppShow (g x)) (f x ≡ g x))
 
 infix 4 ↔
 (↔) ∷ (Eq β, Show β) ⇒ (α → β) → (α → β) → α → Property
