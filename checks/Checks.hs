@@ -88,6 +88,8 @@ checks = testGroup ""
     , testProperty "A generalization of shallownesses"
       $ Cata.scanFromRoot const (fmap (+ 1) ∘ const) ∘ (0, ) ↔ Cata.shallownesses @Cata.TreeFunctor @ℤ
     ]
+  , testGroup "Fancy morphoses."
+    [ testProperty "paramorphose is a catamorphose" $ \ (Fn (algebra ∷ Cata.TreeFunctor ℤ (Cata.Tree ℤ, ℤ) → ℤ)) → Cata.para' Prelude.fmap algebra ↔ Cata.para'' Prelude.fmap algebra ]
   ]
 
 isExtensionallyEqual ∷ (Eq β, Show β) ⇒ (α → β) → (α → β) → α → Property
@@ -121,3 +123,21 @@ instance (Arbitrary α, Arbitrary recursion) ⇒ Arbitrary (Cata.ListFunctor α 
 
 instance (Arbitrary α, Arbitrary recursion) ⇒ Arbitrary (Cata.TreeFunctor α recursion) where
   arbitrary = Prelude.fmap Cata.TreeFunctor arbitrary
+
+instance (CoArbitrary α, CoArbitrary ((f α) (Cata.Y' f α))) ⇒ CoArbitrary (Cata.Y' f α) where
+  coarbitrary = coarbitrary ∘ Cata.y'
+
+instance (CoArbitrary α, CoArbitrary recursion) ⇒ CoArbitrary (Cata.ListFunctor α recursion) where
+  coarbitrary (Cata.ListFunctor value) = coarbitrary value
+
+instance (CoArbitrary α, CoArbitrary recursion) ⇒ CoArbitrary (Cata.TreeFunctor α recursion) where
+  coarbitrary (Cata.TreeFunctor value) = coarbitrary value
+
+instance (Function α, Function ((f α) (Cata.Y' f α))) ⇒ Function (Cata.Y' f α) where
+  function = functionMap Cata.y' Cata.Y'
+
+instance (Function α, Function recursion) ⇒ Function (Cata.ListFunctor α recursion) where
+  function = functionMap (\ (Cata.ListFunctor value) → value) Cata.ListFunctor
+
+instance (Function α, Function recursion) ⇒ Function (Cata.TreeFunctor α recursion) where
+  function = functionMap (\ (Cata.TreeFunctor value) → value) Cata.TreeFunctor

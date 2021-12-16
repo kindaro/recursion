@@ -327,3 +327,9 @@ scanFromRoot computeLabel accumulate = ana' fmap coAlgebra
     fixture (previousAccumulator, Y' tree) = let newAccumulator = accumulate previousAccumulator tree in fmap (newAccumulator, ) tree
     coAlgebra ∷ (accumulator, Y' f α) → Cofree label f α (accumulator,Y' f α)
     coAlgebra = C₂ ∘ fork (uncurry computeLabel ∘ fmap y') fixture
+
+para' ∷ (∀ α β. (Y' f α → β) → f α (Y' f α) → f α β) → (f α (Y' f α, β) → β) → Y' f α → β
+para' fmap = fix \ recurse algebra → algebra ∘ fmap (Base.id `fork` recurse algebra) ∘ y'
+
+para'' ∷ Functor (f α) ⇒ (∀ α β. (Y' f α → β) → f α (Y' f α) → f α β) → (f α (Y' f α, β) → β) → Y' f α → β
+para'' fmap' algebra = snd ∘ cata' fmap' ((Y' ∘ fmap fst) `fork` algebra)
